@@ -16,8 +16,16 @@ weights2 is a matrix between the output layer and the hidden layer
 weights1 = np.random.rand(2, 150)
 weights2 = np.random.rand(150, 1)
 
-def neural_network(X, Y):
-    pass
+def activation(x):
+    return 1 / (1 + np.exp(-x) + 1e-8) # adding a small number to remove overflow
+
+def neural_network(X, Y, learningRate):
+    # X is 630x2
+    # Y is 630x1
+    
+    # Feedforward
+    X = np.insert(X, 2, 1, axis=1) # insert bias
+    print(X)
 
 def load_data():
     # Load data
@@ -39,8 +47,10 @@ def load_data():
 
 trainX, trainY, testX, testY, grid = load_data()
 
-print(trainX.shape)
-print(trainY.shape)
-print(testX.shape)
-print(testY.shape)
-print(grid.shape)
+neural_network(trainX, trainY, 0.001)
+
+
+'''
+Reference:
+General structure of neural network: https://www.youtube.com/watch?v=aircAruvnKk
+'''
