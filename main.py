@@ -17,7 +17,7 @@ class NeuralNetwork:
         # Assign parameters
         self.learningRate = learningRate
         self.epochs = epochs
-        
+
         # Initialize the weights
         self.weights1 = np.random.rand(2, hiddenLayerNodes) # from input to hidden
         self.weights2 = np.random.rand(hiddenLayerNodes, 1) # from hidden to output
@@ -54,23 +54,26 @@ class NeuralNetwork:
     # sigmoid function
     def sigmoid(self, x):
         return 1 / (1 + np.exp(-x) + 1e-8) # adding a small number to remove overflow
+    
+    def dSigmoid(self, x):
+        return sigmoid(x) * (1 - sigmoid(x))
 
 
     def neural_network(self, X, Y):
         # X is 630x2
         # Y is 630x1
         
-        # Feedforward - input to hidden
-        hiddenLayer = sigmoid(X @ self.weight_1 + self.bias_1) # 630x150
+        for i in range(self.epochs):
+            # Feedforward - input to hidden
+            hiddenLayer = X[i, :] @ self.weights1 + self.bias_1
+            activatedHiddenLayer = self.sigmoid(hiddenLayer)
 
-        # Feedforward - hidden to output
-        outputLayer = sigmoid(hiddenLayer @ self.weight_2 + self.bias_2) # 630x1
+            # Feedforward - hidden to output
+            outputLayer = activatedHiddenLayer @ self.weights2 + self.bias_2
+            activatedOutputLayer = self.sigmoid(outputLayer)
 
-        # Cost function - cross-entropy cost function
-        loss = costFunction(outputLayer, Y)
-        
-        # Backpropagation
-        error = outputLayer - Y # 630x1
+            # Loss function
+            loss = self.costFunction(activatedOutputLayer, Y[i, :])
 
 
 '''
