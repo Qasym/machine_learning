@@ -12,54 +12,67 @@ weights2 variable should be 150x1
 weights2 is a matrix between the output layer and the hidden layer
 '''
 
-# Initialize the weights
-weights1 = np.random.rand(2, 150)
-weights2 = np.random.rand(150, 1)
+class NeuralNetwork:
+    def __init__(self, learningRate, epochs):
+        # Assign parameters
+        self.learningRate = learningRate
+        self.epochs = epochs
+        
+        # Initialize the weights
+        self.weights1 = np.random.rand(2, 150)
+        selfweights2 = np.random.rand(150, 1)
 
-def costFunction(prediction, actual):
-    # X is 630x1 & Y is 630x1
-    result = actual @ np.log(prediction) + (1 - actual) @ np.log(1 - prediction)
-    return -np.sum(result) / len(actual)
+    def load_data(self):
+        # Load data
+        train = np.loadtxt('Trn.csv', delimiter=',')
+        test = np.loadtxt('Tst.csv', delimiter=',')
+        grid = np.loadtxt('Grid.csv', delimiter=',')
 
-# sigmoid function
-def activation(x):
-    return 1 / (1 + np.exp(-x) + 1e-8) # adding a small number to remove overflow
+        # Obtain training data
+        trainX = train[:, :2]
+        trainY = train[:, 2]
 
-def neural_network(X, Y, learningRate):
-    # X is 630x2
-    # Y is 630x1
+        # Obtain test data
+        testX = test[:, :2]
+        testY = test[:, 2]
+
+        # We don't need to separate grid data, since it is only X without Y
+
+        return trainX, trainY, testX, testY, grid
+
+
+    def costFunction(self,prediction, actual):
+        # X is 630x1 & Y is 630x1
+        result = actual @ np.log(prediction) + (1 - actual) @ np.log(1 - prediction)
+        return -np.sum(result) / len(actual)
+
+    # sigmoid function
+    def activation(self, x):
+        return 1 / (1 + np.exp(-x) + 1e-8) # adding a small number to remove overflow
+
+    def neural_network(self, X, Y, learningRate):
+        # X is 630x2
+        # Y is 630x1
+        
+        # Feedforward - input to hidden
+        X = np.insert(X, 2, 1, axis=1) # insert bias at the end of each column
+        param1 = np.insert(weights1, 2, 1, axis=0) # insert bias at the end of each row
+        hiddenLayer = activation(X @ param1) # 630x150
+
+        # Feedforward - hidden to output
+        hiddenLayer = np.insert(hiddenLayer, 2, 1, axis=1) # insert bias at the end of each column
+        param2 = np.insert(weights2, 2, 1, axis=0) # insert bias at the end of each row
+        outputLayer = activation(hiddenLayer @ param2) # 630x1
+
+        # Cost function - cross-entropy cost function
+        loss = costFunction(outputLayer, Y)
+        
+        # Backpropagation
+        error = outputLayer - Y # 630x1
+
     
-    # Feedforward - input to hidden
-    X = np.insert(X, 2, 1, axis=1) # insert bias at the end of each column
-    param1 = np.insert(weights1, 2, 1, axis=0) # insert bias at the end of each row
-    hiddenLayer = activation(X @ param1) # 630x150
 
-    # Feedforward - hidden to output
-    hiddenLayer = np.insert(hiddenLayer, 2, 1, axis=1) # insert bias at the end of each column
-    param2 = np.insert(weights2, 2, 1, axis=0) # insert bias at the end of each row
-    outputLayer = activation(hiddenLayer @ param2) # 630x1
 
-    # Cost function - cross-entropy cost function
-    print(costFunction(outputLayer, Y))
-    
-
-def load_data():
-    # Load data
-    train = np.loadtxt('Trn.csv', delimiter=',')
-    test = np.loadtxt('Tst.csv', delimiter=',')
-    grid = np.loadtxt('Grid.csv', delimiter=',')
-
-    # Obtain training data
-    trainX = train[:, :2]
-    trainY = train[:, 2]
-
-    # Obtain test data
-    testX = test[:, :2]
-    testY = test[:, 2]
-
-    # We don't need to separate grid data, since it is only X without Y
-
-    return trainX, trainY, testX, testY, grid
 
 trainX, trainY, testX, testY, grid = load_data()
 
