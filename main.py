@@ -13,14 +13,18 @@ weights2 is a matrix between the output layer and the hidden layer
 '''
 
 class NeuralNetwork:
-    def __init__(self, learningRate, epochs):
+    def __init__(self, hiddenLayerNodes, learningRate, epochs):
         # Assign parameters
         self.learningRate = learningRate
         self.epochs = epochs
         
         # Initialize the weights
-        self.weights1 = np.random.rand(2, 150)
-        selfweights2 = np.random.rand(150, 1)
+        self.weights1 = np.random.rand(2, hiddenLayerNodes) # from input to hidden
+        self.weights2 = np.random.rand(hiddenLayerNodes, 1) # from hidden to output
+
+        # Initialize the bias
+        self.bias_1 = np.random.rand(1, hiddenLayerNodes) # from input to hidden
+        self.bias_2 = np.random.rand(1, 1) # from hidden to output
 
     def load_data(self):
         # Load data
@@ -41,42 +45,32 @@ class NeuralNetwork:
         return trainX, trainY, testX, testY, grid
 
 
-    def costFunction(self,prediction, actual):
+    def costFunction(self, prediction, actual):
         # X is 630x1 & Y is 630x1
         result = actual @ np.log(prediction) + (1 - actual) @ np.log(1 - prediction)
         return -np.sum(result) / len(actual)
 
+
     # sigmoid function
-    def activation(self, x):
+    def sigmoid(self, x):
         return 1 / (1 + np.exp(-x) + 1e-8) # adding a small number to remove overflow
 
-    def neural_network(self, X, Y, learningRate):
+
+    def neural_network(self, X, Y):
         # X is 630x2
         # Y is 630x1
         
         # Feedforward - input to hidden
-        X = np.insert(X, 2, 1, axis=1) # insert bias at the end of each column
-        param1 = np.insert(weights1, 2, 1, axis=0) # insert bias at the end of each row
-        hiddenLayer = activation(X @ param1) # 630x150
+        hiddenLayer = sigmoid(X @ self.weight_1 + self.bias_1) # 630x150
 
         # Feedforward - hidden to output
-        hiddenLayer = np.insert(hiddenLayer, 2, 1, axis=1) # insert bias at the end of each column
-        param2 = np.insert(weights2, 2, 1, axis=0) # insert bias at the end of each row
-        outputLayer = activation(hiddenLayer @ param2) # 630x1
+        outputLayer = sigmoid(hiddenLayer @ self.weight_2 + self.bias_2) # 630x1
 
         # Cost function - cross-entropy cost function
         loss = costFunction(outputLayer, Y)
         
         # Backpropagation
         error = outputLayer - Y # 630x1
-
-    
-
-
-
-trainX, trainY, testX, testY, grid = load_data()
-
-neural_network(trainX, trainY, 0.001)
 
 
 '''
