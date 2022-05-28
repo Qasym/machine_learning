@@ -16,6 +16,11 @@ weights2 is a matrix between the output layer and the hidden layer
 weights1 = np.random.rand(2, 150)
 weights2 = np.random.rand(150, 1)
 
+def costFunction(prediction, actual):
+    # X is 630x1 & Y is 630x1
+    result = actual @ np.log(prediction) + (1 - actual) @ np.log(1 - prediction)
+    return -np.sum(result) / len(actual)
+
 # sigmoid function
 def activation(x):
     return 1 / (1 + np.exp(-x) + 1e-8) # adding a small number to remove overflow
@@ -35,6 +40,7 @@ def neural_network(X, Y, learningRate):
     outputLayer = activation(hiddenLayer @ param2) # 630x1
 
     # Cost function - cross-entropy cost function
+    print(costFunction(outputLayer, Y))
     
 
 def load_data():
