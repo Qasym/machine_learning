@@ -92,7 +92,8 @@ class NeuralNetwork:
             dWeights_2 = activatedHiddenLayer.T @ (activatedOutputLayer - Y[i, :]) # 150x1
 
             # Backpropagation - hidden to input
-            # need to redo the calculation 
+            dBias_1 = (dBias_2 @ self.weights2) * self.dSigmoid(hiddenLayer) # 1x150  
+            dWeights_1 = X[i, :] @ (dBias_2 @ self.weights2) * self.dSigmoid(hiddenLayer) # 2x150
 
             # Update weights and bias
             self.weights2 -= self.learningRate * dWeights_2
