@@ -27,6 +27,7 @@ class NeuralNetwork:
         self.bias_2 = np.random.rand(1, 1) # from hidden to output
 
         # Loss over time tracking
+        self.loss = []
 
     def load_data(self):
         # Load data
@@ -37,19 +38,25 @@ class NeuralNetwork:
         # Obtain training data
         trainX = train[:, :2]
         trainY = train[:, 2]
+        trainY = trainY.reshape(len(trainY), 1)
 
         # Obtain test data
         testX = test[:, :2]
         testY = test[:, 2]
+        testY = testY.reshape(len(testY), 1)
 
         # We don't need to separate grid data, since it is only X without Y
 
         return trainX, trainY, testX, testY, grid
 
+    def plot(self):
+        plt.plot(self.loss)
+        plt.show()
 
     def costFunction(self, prediction, actual):
         # prediction is a 1x1 matrix
         # actual is a 1x1 matrix
+        # print(prediction.shape, actual)
         result = actual @ np.log(prediction) + (1 - actual) @ np.log(1 - prediction)
         return -np.sum(result) / len(actual)
 
@@ -59,7 +66,7 @@ class NeuralNetwork:
         return 1 / (1 + np.exp(-x) + 1e-8) # adding a small number to remove overflow
     
     def dSigmoid(self, x):
-        return sigmoid(x) * (1 - sigmoid(x))
+        return self.sigmoid(x) * (1 - self.sigmoid(x))
 
 
     def train(self, X, Y):
@@ -68,31 +75,36 @@ class NeuralNetwork:
         
         for i in range(self.epochs):
             # Feedforward - input to hidden
-            hiddenLayer = X[i, :] @ self.weights1 + self.bias_1
-            activatedHiddenLayer = self.sigmoid(hiddenLayer)
+            hiddenLayer = X[i, :] @ self.weights1 + self.bias_1 # 1x150
+            activatedHiddenLayer = self.sigmoid(hiddenLayer) # 1x150
 
             # Feedforward - hidden to output
-            outputLayer = activatedHiddenLayer @ self.weights2 + self.bias_2
-            activatedOutputLayer = self.sigmoid(outputLayer)
+            outputLayer = activatedHiddenLayer @ self.weights2 + self.bias_2 # 1x1
+            activatedOutputLayer = self.sigmoid(outputLayer) # 1x1
 
             # Loss function
-            loss = self.costFunction(activatedOutputLayer, Y[i, :])
+            self.loss.append(self.costFunction(activatedOutputLayer, Y[i, :]))
 
             # For backpropation, we have to use gradient of cross entropy loss
 
             # Backpropagation - output to hidden
-            dBias_2 = activatedOutputLayer - Y[i, :]
-            dWeights_2 = activatedHiddenLayer.T @ (activatedOutputLayer - Y[i, :])
+            dBias_2 = activatedOutputLayer - Y[i, :] # 1x1
+            dWeights_2 = activatedHiddenLayer.T @ (activatedOutputLayer - Y[i, :]) # 150x1
 
             # Backpropagation - hidden to input
-            dBias_1 = dWeights_2 @ self.weights2.T * self.dSigmoid(activatedHiddenLayer)
-            dWeights_1 = X[i, :].T @ (dWeights_2 @ self.weights2.T * self.dSigmoid(activatedHiddenLayer))
+            # need to redo the calculation 
 
             # Update weights and bias
             self.weights2 -= self.learningRate * dWeights_2
             self.bias_2 -= self.learningRate * dBias_2
             self.weights1 -= self.learningRate * dWeights_1
             self.bias_1 -= self.learningRate * dBias_1
+
+
+nn = NeuralNetwork(150, 0.01, 600)
+trainX, trainY, testX, testY, grid = nn.load_data()
+nn.train(trainX, trainY)
+nn.plot()
 
 '''
 Reference:
