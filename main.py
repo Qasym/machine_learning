@@ -13,14 +13,14 @@ weights2 is a matrix between the output layer and the hidden layer
 '''
 
 class NeuralNetwork:
-    def __init__(self, hiddenLayerNodes, learningRate, epochs):
+    def __init__(self, hiddenLayerNodes, learningRate, epochs=None):
         # Assign parameters
         self.learningRate = learningRate
         self.epochs = epochs
 
         # Initialize the weights
-        self.weights1 = np.random.rand(2, hiddenLayerNodes) # from input to hidden
-        self.weights2 = np.random.rand(hiddenLayerNodes, 1) # from hidden to output
+        self.weights_1 = np.random.rand(2, hiddenLayerNodes) # from input to hidden
+        self.weights_2 = np.random.rand(hiddenLayerNodes, 1) # from hidden to output
 
         # Initialize the bias
         self.bias_1 = np.random.rand(1, hiddenLayerNodes) # from input to hidden
@@ -39,6 +39,10 @@ class NeuralNetwork:
         trainX = train[:, :2]
         trainY = train[:, 2]
         trainY = trainY.reshape(len(trainY), 1)
+
+        # Set epochs
+        if self.epochs == None:
+            self.epochs = len(trainX)
 
         # Obtain test data
         testX = test[:, :2]
@@ -75,11 +79,11 @@ class NeuralNetwork:
         
         for i in range(self.epochs):
             # Feedforward - input to hidden
-            hiddenLayer = X[i, :] @ self.weights1 + self.bias_1 # 1x150
+            hiddenLayer = X[i, :] @ self.weights_1 + self.bias_1 # 1x150
             activatedHiddenLayer = self.sigmoid(hiddenLayer) # 1x150
 
             # Feedforward - hidden to output
-            outputLayer = activatedHiddenLayer @ self.weights2 + self.bias_2 # 1x1
+            outputLayer = activatedHiddenLayer @ self.weights_2 + self.bias_2 # 1x1
             activatedOutputLayer = self.sigmoid(outputLayer) # 1x1
 
             # Loss function
@@ -92,13 +96,15 @@ class NeuralNetwork:
             dWeights_2 = activatedHiddenLayer.T @ (activatedOutputLayer - Y[i, :]) # 150x1
 
             # Backpropagation - hidden to input
-            dBias_1 = (dBias_2 @ self.weights2) * self.dSigmoid(hiddenLayer) # 1x150  
-            dWeights_1 = X[i, :] @ (dBias_2 @ self.weights2) * self.dSigmoid(hiddenLayer) # 2x150
+            dBias_1 = ((self.weights_2 @ dBias_2) * self.dSigmoid(hiddenLayer).T).T # 150x1
+            dWeights_1 = ((self.weights_2 @ dBias_2) @ X[i, :].reshape((1, 2)) * self.dSigmoid(hiddenLayer).T).T # 2x150
+
+            # print(self.bias_1.shape, self.weights_1.shape, dBias_1.shape, dWeights_1.shape)
 
             # Update weights and bias
-            self.weights2 -= self.learningRate * dWeights_2
+            self.weights_2 -= self.learningRate * dWeights_2
             self.bias_2 -= self.learningRate * dBias_2
-            self.weights1 -= self.learningRate * dWeights_1
+            self.weights_1 -= self.learningRate * dWeights_1
             self.bias_1 -= self.learningRate * dBias_1
 
 
