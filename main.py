@@ -53,8 +53,11 @@ class NeuralNetwork:
 
         return trainX, trainY, testX, testY, grid
 
-    def plot(self):
+    def save_plot(self):
+        plt.ylabel('Loss')
+        plt.xlabel('Epochs')
         plt.plot(self.loss)
+        plt.savefig("loss.png")
         plt.show()
 
     def costFunction(self, prediction, actual):
@@ -99,8 +102,6 @@ class NeuralNetwork:
             dBias_1 = ((self.weights_2 @ dBias_2) * self.dSigmoid(hiddenLayer).T).T # 150x1
             dWeights_1 = ((self.weights_2 @ dBias_2) @ X[i, :].reshape((1, 2)) * self.dSigmoid(hiddenLayer).T).T # 2x150
 
-            # print(self.bias_1.shape, self.weights_1.shape, dBias_1.shape, dWeights_1.shape)
-
             # Update weights and bias
             self.weights_2 -= self.learningRate * dWeights_2
             self.bias_2 -= self.learningRate * dBias_2
@@ -111,7 +112,7 @@ class NeuralNetwork:
 nn = NeuralNetwork(150, 0.01, 600)
 trainX, trainY, testX, testY, grid = nn.load_data()
 nn.train(trainX, trainY)
-nn.plot()
+nn.save_plot()
 
 '''
 Reference:
