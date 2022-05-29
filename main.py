@@ -26,6 +26,8 @@ class NeuralNetwork:
         self.bias_1 = np.random.rand(1, hiddenLayerNodes) # from input to hidden
         self.bias_2 = np.random.rand(1, 1) # from hidden to output
 
+        # Loss over time tracking
+
     def load_data(self):
         # Load data
         train = np.loadtxt('Trn.csv', delimiter=',')
@@ -46,7 +48,8 @@ class NeuralNetwork:
 
 
     def costFunction(self, prediction, actual):
-        # X is 630x1 & Y is 630x1
+        # prediction is a 1x1 matrix
+        # actual is a 1x1 matrix
         result = actual @ np.log(prediction) + (1 - actual) @ np.log(1 - prediction)
         return -np.sum(result) / len(actual)
 
@@ -59,7 +62,7 @@ class NeuralNetwork:
         return sigmoid(x) * (1 - sigmoid(x))
 
 
-    def neural_network(self, X, Y):
+    def train(self, X, Y):
         # X is 630x2
         # Y is 630x1
         
@@ -75,6 +78,21 @@ class NeuralNetwork:
             # Loss function
             loss = self.costFunction(activatedOutputLayer, Y[i, :])
 
+            # For backpropation, we have to use gradient of cross entropy loss
+
+            # Backpropagation - output to hidden
+            dBias_2 = activatedOutputLayer - Y[i, :]
+            dWeights_2 = activatedHiddenLayer.T @ (activatedOutputLayer - Y[i, :])
+
+            # Backpropagation - hidden to input
+            dBias_1 = dWeights_2 @ self.weights2.T * self.dSigmoid(activatedHiddenLayer)
+            dWeights_1 = X[i, :].T @ (dWeights_2 @ self.weights2.T * self.dSigmoid(activatedHiddenLayer))
+
+            # Update weights and bias
+            self.weights2 -= self.learningRate * dWeights_2
+            self.bias_2 -= self.learningRate * dBias_2
+            self.weights1 -= self.learningRate * dWeights_1
+            self.bias_1 -= self.learningRate * dBias_1
 
 '''
 Reference:
