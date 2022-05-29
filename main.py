@@ -27,7 +27,8 @@ class NeuralNetwork:
         self.bias_2 = np.random.rand(1, 1) # from hidden to output
 
         # Loss over time tracking
-        self.loss = []
+        self.train_loss = []
+        self.test_loss = []
 
     def load_data(self):
         # Load data
@@ -53,11 +54,11 @@ class NeuralNetwork:
 
         return trainX, trainY, testX, testY, grid
 
-    def save_plot(self):
+    def save_plot(self, loss, name=None):
         plt.ylabel('Loss')
         plt.xlabel('Epochs')
-        plt.plot(self.loss)
-        plt.savefig("loss.png")
+        plt.plot(loss)
+        plt.savefig("loss_" + str(name) + ".png")
         plt.show()
 
     def costFunction(self, prediction, actual):
@@ -90,7 +91,7 @@ class NeuralNetwork:
             activatedOutputLayer = self.sigmoid(outputLayer) # 1x1
 
             # Loss function
-            self.loss.append(self.costFunction(activatedOutputLayer, Y[i, :]))
+            self.train_loss.append(self.costFunction(activatedOutputLayer, Y[i, :]))
 
             # For backpropation, we have to use gradient of cross entropy loss
 
@@ -107,12 +108,27 @@ class NeuralNetwork:
             self.bias_2 -= self.learningRate * dBias_2
             self.weights_1 -= self.learningRate * dWeights_1
             self.bias_1 -= self.learningRate * dBias_1
+    
+    def test(self, X, Y):
+        # Feedforward - input to hidden
+        for i in range(self.epochs):
+            # Feedforward - input to hidden
+            hiddenLayer = X[i, :] @ self.weights_1 + self.bias_1
+            activatedHiddenLayer = self.sigmoid(hiddenLayer)
+
+            # Feedforward - hidden to output
+            outputLayer = activatedHiddenLayer @ self.weights_2 + self.bias_2
+            activatedOutputLayer = self.sigmoid(outputLayer)
+
+            self.test_loss.append(self.costFunction(activatedOutputLayer, Y[i, :]))
 
 
-nn = NeuralNetwork(150, 0.01, 600)
+nn = NeuralNetwork(150, 0.01)
 trainX, trainY, testX, testY, grid = nn.load_data()
 nn.train(trainX, trainY)
-nn.save_plot()
+nn.test(testX, testY)
+nn.save_plot(nn.train_loss, "train")
+nn.save_plot(nn.test_loss, "test")
 
 '''
 Reference:
