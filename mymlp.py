@@ -1,4 +1,4 @@
-Jimport numpy as np
+import numpy as np
 import matplotlib.pyplot as plt
 
 '''
@@ -13,10 +13,10 @@ weights2 is a matrix between the output layer and the hidden layer
 '''
 
 class NeuralNetwork:
-    def __init__(self, hiddenLayerNodes, learningRate, epochs=None):
+    def __init__(self, hiddenLayerNodes, learningRate, data_entries=None):
         # Assign parameters
         self.learningRate = learningRate
-        self.epochs = epochs
+        self.data_entries = data_entries
 
         # Initialize the weights
         self.weights_1 = np.random.rand(2, hiddenLayerNodes) # from input to hidden
@@ -41,9 +41,9 @@ class NeuralNetwork:
         trainY = train[:, 2]
         trainY = trainY.reshape(len(trainY), 1)
 
-        # Set epochs
-        if self.epochs == None:
-            self.epochs = len(trainX)
+        # Set data_entries
+        if self.data_entries == None or self.data_entries > len(trainX):
+            self.data_entries = len(trainX)
 
         # Obtain test data
         testX = test[:, :2]
@@ -57,7 +57,7 @@ class NeuralNetwork:
     def save_loss_plot(self, loss, name=None):
         plt.title(str(name))
         plt.ylabel('Loss')
-        plt.xlabel('Epochs')
+        plt.xlabel('Data entries')
         plt.axis([0, len(loss), 0, 20])
         plt.plot(loss)
         plt.savefig(str(name) + ".png")
@@ -83,7 +83,7 @@ class NeuralNetwork:
         # X is 630x2
         # Y is 630x1
         
-        for i in range(self.epochs):
+        for i in range(self.data_entries):
             # Feedforward - input to hidden
             hiddenLayer = X[i, :] @ self.weights_1 + self.bias_1 # 1x150
             activatedHiddenLayer = self.sigmoid(hiddenLayer) # 1x150
@@ -112,8 +112,14 @@ class NeuralNetwork:
             self.bias_1 -= self.learningRate * dBias_1
     
     def test(self, X, Y):
-        # Feedforward - input to hidden
-        for i in range(self.epochs):
+        # Print message before start
+        print("Testing began")
+        print("Model was trained on", self.data_entries, "data entires")
+
+        # Track predictions
+        correctPrediction = 0
+
+        for i in range(len(X)):
             # Feedforward - input to hidden
             hiddenLayer = X[i, :] @ self.weights_1 + self.bias_1
             activatedHiddenLayer = self.sigmoid(hiddenLayer)
@@ -125,8 +131,18 @@ class NeuralNetwork:
             # Tracking test loss
             self.test_loss.append(self.costFunction(activatedOutputLayer, Y[i, :]))
 
+            # Measuring accuracy
+            if activatedOutputLayer >= 0.5 and Y[i, :] == 1:
+                correctPrediction += 1
+            elif activatedOutputLayer < 0.5 and Y[i, :] == 0:
+                correctPrediction += 1
 
-nn = NeuralNetwork(150, 0.01)
+            # print("Prediction: ", activatedOutputLayer, " Actual: ", Y[i, :], sep="")
+        
+        print("Accuracy: ", "%.2f"%(correctPrediction / len(X) * 100.0), "%", sep="")
+
+
+nn = NeuralNetwork(250, 0.01)
 trainX, trainY, testX, testY, grid = nn.load_data()
 nn.train(trainX, trainY)
 nn.test(testX, testY)
