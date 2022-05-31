@@ -3,20 +3,21 @@ import matplotlib.pyplot as plt
 
 '''
 input layer consists of 2 neurons
-hidden layer consists of 150 neurons
+hidden layer consists of hiddenLayerNodes neurons
 so the weights1 variable that is between input layer
-and hidden layer should be 2x150
+and hidden layer should be 2xhiddenLayerNodes
 since my design implies one hidden layer
 and we have only binary output (either 0 or 1)
-weights2 variable should be 150x1
+weights2 variable should be hiddenLayerNodesx1
 weights2 is a matrix between the output layer and the hidden layer
 '''
 
 class NeuralNetwork:
-    def __init__(self, hiddenLayerNodes, learningRate, data_entries=None):
+    def __init__(self, hiddenLayerNodes, learningRate, epochs=1, data_entries=None):
         # Assign parameters
         self.learningRate = learningRate
         self.data_entries = data_entries
+        self.epochs = epochs
 
         # Initialize the weights
         self.weights_1 = np.random.rand(2, hiddenLayerNodes) # from input to hidden
@@ -26,9 +27,9 @@ class NeuralNetwork:
         self.bias_1 = np.random.rand(1, hiddenLayerNodes) # from input to hidden
         self.bias_2 = np.random.rand(1, 1) # from hidden to output
 
-        # Loss over time tracking
+        # Loss over epochs tracking
         self.train_loss = []
-        self.test_loss = []
+        self.train_accuracy = []
 
     def load_data(self):
         # Load data
@@ -54,20 +55,35 @@ class NeuralNetwork:
 
         return trainX, trainY, testX, testY, grid
 
-    def save_loss_plot(self, loss, name=None):
-        plt.title(str(name))
-        plt.ylabel('Loss')
-        plt.xlabel('Data entries')
-        plt.axis([0, len(loss), 0, 20])
-        plt.plot(loss)
-        plt.savefig(str(name) + ".png")
-        plt.close()
+    def save_train_results(self):
+        if self.epochs == 1:
+            # graphs look awful with epoch, so I just print
+            print("Training loss within the only epoch:", "%.2f"%self.train_loss[0])
+            print("Training accuracy within the only epoch:", "%.2f"%self.train_accuracy[0])
+        else:
+            # plotting loss
+            plt.title("Train loss over epochs")
+            plt.xlabel("Epochs")
+            plt.ylabel("Loss")
+            # plt.xticks(np.arange(1, self.epochs + 2, 1))
+            plt.plot(self.train_loss)
+            plt.savefig("train_loss.png")
+            plt.close()
+
+            # plotting accuracy
+            plt.title("Train accuracy over epochs")
+            plt.xlabel("Epochs")
+            plt.ylabel("Accuracy")
+            # plt.xticks(np.arange(1, self.epochs + 2, 1))
+            plt.plot(self.train_accuracy)
+            plt.savefig("train_accuracy.png")
+            plt.close()
 
     def costFunction(self, prediction, actual):
         # prediction is a 1x1 matrix
         # actual is a 1x1 matrix
         # print(prediction.shape, actual)
-        result = actual @ np.log(prediction) + (1 - actual) @ np.log(1 - prediction)
+        result = actual * np.log(prediction) + (1 - actual) * np.log(1 - prediction)
         return -np.sum(result) / len(actual)
 
 
@@ -82,76 +98,76 @@ class NeuralNetwork:
     def train(self, X, Y):
         # X is 630x2
         # Y is 630x1
-        
-        for i in range(self.data_entries):
+        for epoch in range(self.epochs):
+            
+            # Fully stochastic gradient descent
+            for i in range(self.data_entries):
+                # Feedforward - input to hidden
+                hiddenLayer = X[i, :] @ self.weights_1 + self.bias_1 # 1x150
+                activatedHiddenLayer = self.sigmoid(hiddenLayer) # 1x150
+
+                # Feedforward - hidden to output
+                outputLayer = activatedHiddenLayer @ self.weights_2 + self.bias_2 # 1x1
+                activatedOutputLayer = self.sigmoid(outputLayer) # 1x1
+
+                # For backpropation, we have to use gradient of cross entropy loss
+
+                # Backpropagation - output to hidden
+                dBias_2 = activatedOutputLayer - Y[i, :] # 1x1
+                dWeights_2 = activatedHiddenLayer.T @ (activatedOutputLayer - Y[i, :]) # 150x1
+
+                # Backpropagation - hidden to input
+                dBias_1 = ((self.weights_2 @ dBias_2) * self.dSigmoid(hiddenLayer).T).T # 150x1
+                dWeights_1 = ((self.weights_2 @ dBias_2) @ X[i, :].reshape((1, 2)) * self.dSigmoid(hiddenLayer).T).T # 2x150
+
+                # Update weights and bias
+                self.weights_2 -= self.learningRate * dWeights_2
+                self.bias_2 -= self.learningRate * dBias_2
+                self.weights_1 -= self.learningRate * dWeights_1
+                self.bias_1 -= self.learningRate * dBias_1
+            
+            # Calculate loss
+
             # Feedforward - input to hidden
-            hiddenLayer = X[i, :] @ self.weights_1 + self.bias_1 # 1x150
-            activatedHiddenLayer = self.sigmoid(hiddenLayer) # 1x150
+            hiddenLayer = X @ self.weights_1 + self.bias_1 # 630x150
+            activatedHiddenLayer = self.sigmoid(hiddenLayer) # 630x150
 
             # Feedforward - hidden to output
-            outputLayer = activatedHiddenLayer @ self.weights_2 + self.bias_2 # 1x1
-            activatedOutputLayer = self.sigmoid(outputLayer) # 1x1
+            outputLayer = activatedHiddenLayer @ self.weights_2 + self.bias_2 # 630x1
+            activatedOutputLayer = self.sigmoid(outputLayer) # 630x1
 
-            # Tracking train loss
-            self.train_loss.append(self.costFunction(activatedOutputLayer, Y[i, :]))
+            # Track loss
+            self.train_loss.append(self.costFunction(activatedOutputLayer, Y))
 
-            # For backpropation, we have to use gradient of cross entropy loss
+            # Calculate accuracy
+            accuracy = ((activatedOutputLayer >= 0.5).astype(int) == Y).astype(int).sum() / len(Y)
+            accuracy *= 100
+            self.train_accuracy.append(accuracy)
 
-            # Backpropagation - output to hidden
-            dBias_2 = activatedOutputLayer - Y[i, :] # 1x1
-            dWeights_2 = activatedHiddenLayer.T @ (activatedOutputLayer - Y[i, :]) # 150x1
-
-            # Backpropagation - hidden to input
-            dBias_1 = ((self.weights_2 @ dBias_2) * self.dSigmoid(hiddenLayer).T).T # 150x1
-            dWeights_1 = ((self.weights_2 @ dBias_2) @ X[i, :].reshape((1, 2)) * self.dSigmoid(hiddenLayer).T).T # 2x150
-
-            # Update weights and bias
-            self.weights_2 -= self.learningRate * dWeights_2
-            self.bias_2 -= self.learningRate * dBias_2
-            self.weights_1 -= self.learningRate * dWeights_1
-            self.bias_1 -= self.learningRate * dBias_1
     
     def test(self, X, Y):
-        # Print message before start
-        print("Testing began")
-        print("Model was trained on", self.data_entries, "data entires")
+        # Feedforward - input to hidden
+        hiddenLayer = X @ self.weights_1 + self.bias_1 # 630x150
+        activatedHiddenLayer = self.sigmoid(hiddenLayer) # 630x150
 
-        # Track predictions
-        correctPrediction = 0
+        # Feedforward - hidden to output
+        outputLayer = activatedHiddenLayer @ self.weights_2 + self.bias_2 # 630x1
+        activatedOutputLayer = self.sigmoid(outputLayer) # 630x1
 
-        for i in range(len(X)):
-            # Feedforward - input to hidden
-            hiddenLayer = X[i, :] @ self.weights_1 + self.bias_1
-            activatedHiddenLayer = self.sigmoid(hiddenLayer)
+        # Calculate loss
+        loss = self.costFunction(activatedOutputLayer, Y)
 
-            # Feedforward - hidden to output
-            outputLayer = activatedHiddenLayer @ self.weights_2 + self.bias_2
-            activatedOutputLayer = self.sigmoid(outputLayer)
-            
-            # Tracking test loss
-            self.test_loss.append(self.costFunction(activatedOutputLayer, Y[i, :]))
-
-            # Measuring accuracy
-            if activatedOutputLayer >= 0.5 and Y[i, :] == 1:
-                correctPrediction += 1
-            elif activatedOutputLayer < 0.5 and Y[i, :] == 0:
-                correctPrediction += 1
-
-            # print("Prediction: ", activatedOutputLayer, " Actual: ", Y[i, :], sep="")
+        # Calculate accuracy
+        activatedOutputLayer = (activatedOutputLayer >= 0.5).astype(int) # 630x1
+        accuracy = (activatedOutputLayer == Y).astype(int).sum() / len(Y)
         
-        print("Accuracy: ", "%.2f"%(correctPrediction / len(X) * 100.0), "%", sep="")
+        # Print message after finish
+        print("Test loss:", "%.2f"%loss)
+        print("Test accuracy: ", "%.2f"%(accuracy * 100), "%", sep="")
 
 
-nn = NeuralNetwork(250, 0.01)
+nn = NeuralNetwork(hiddenLayerNodes=250, learningRate=0.01, epochs=2)
 trainX, trainY, testX, testY, grid = nn.load_data()
 nn.train(trainX, trainY)
 nn.test(testX, testY)
-nn.save_loss_plot(nn.train_loss, "Train loss")
-nn.save_loss_plot(nn.test_loss, "Test loss")
-
-'''
-Reference:
-General structure of neural network: https://www.youtube.com/watch?v=aircAruvnKk
-I got to know that cross-entropy function is good for classification problems: https://www.analyticsvidhya.com/blog/2021/02/cost-function-is-no-rocket-science/
-Cross-entropy loss function function formule: https://eng.libretexts.org/Bookshelves/Computer_Science/Applied_Programming/Book%3A_Neural_Networks_and_Deep_Learning_(Nielsen)/03%3A_Improving_the_way_neural_networks_learn/3.01%3A_The_cross-entropy_cost_function#:~:text=We%20define%20the%20cross%2Dentropy,is%20the%20corresponding%20desired%20output.
-'''
+nn.save_train_results()
