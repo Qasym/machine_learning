@@ -55,7 +55,7 @@ class NeuralNetwork:
 
         return trainX, trainY, testX, testY, grid
 
-    def save_train_results(self):
+    def save_train_results(self, name=None):
         if self.epochs == 1:
             # graphs look awful with epoch, so I just print
             print("Training loss within the only epoch:", "%.2f"%self.train_loss[0])
@@ -67,7 +67,10 @@ class NeuralNetwork:
             plt.ylabel("Loss")
             # plt.xticks(np.arange(1, self.epochs + 2, 1))
             plt.plot(self.train_loss)
-            plt.savefig("train_loss.png")
+            if name == None:
+                plt.savefig("train_loss.png")
+            else:
+                plt.savefig("train_loss_" + name + ".png")
             plt.close()
 
             # plotting accuracy
@@ -76,8 +79,15 @@ class NeuralNetwork:
             plt.ylabel("Accuracy")
             # plt.xticks(np.arange(1, self.epochs + 2, 1))
             plt.plot(self.train_accuracy)
-            plt.savefig("train_accuracy.png")
+            if name == None:
+                plt.savefig("train_accuracy.png")
+            else:
+                plt.savefig("train_accuracy_" + name + ".png")
             plt.close()
+
+            # printing the last accuracy and loss
+            print("Training loss:", "%.2f"%self.train_loss[-1])
+            print("Training accuracy:", "%.2f"%self.train_accuracy[-1])
 
     def costFunction(self, prediction, actual):
         # prediction is a 1x1 matrix
@@ -159,9 +169,52 @@ class NeuralNetwork:
         print("Test loss:", "%.2f"%loss)
         print("Test accuracy: ", "%.2f"%accuracy, "%", sep="")
 
+    def justPrediction(self, X):
+        # Feedforward - input to hidden
+        hiddenLayer = X @ self.weights_1 + self.bias_1 # 630x150
+        activatedHiddenLayer = self.sigmoid(hiddenLayer) # 630x150
 
-nn = NeuralNetwork(hiddenLayerNodes=250, learningRate=0.01, epochs=2)
-trainX, trainY, testX, testY, grid = nn.load_data()
-nn.train(trainX, trainY)
-nn.test(testX, testY)
-nn.save_train_results()
+        # Feedforward - hidden to output
+        outputLayer = activatedHiddenLayer @ self.weights_2 + self.bias_2 # 630x1
+        activatedOutputLayer = self.sigmoid(outputLayer) # 630x1
+
+        activatedOutputLayer = ((activatedOutputLayer >= 0.5).astype(int) == 1).astype(int)
+
+        return activatedOutputLayer
+
+    def plotGrid(self, gridX, gridY):
+        x = np.asarray(gridX[:, 0])
+        y = np.asarray(gridX[:, 1])
+        z = np.asarray(gridY)
+    
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+
+        ax.scatter(x, y, z, c='r', marker='o')
+
+        ax.set_xlabel('X Label')
+        ax.set_ylabel('Y Label')
+        ax.set_zlabel('Z Label')
+
+        plt.savefig("grid.png")
+
+
+# nn = NeuralNetwork(hiddenLayerNodes=250, learningRate=0.01, epochs=100)
+# trainX, trainY, testX, testY, grid = nn.load_data()
+# nn.train(trainX, trainY)
+# nn.test(testX, testY)
+# nn.save_train_results()
+
+nn40 = NeuralNetwork(hiddenLayerNodes=250, learningRate=0.01, epochs=100, data_entries=40)
+trainX, trainY, testX, testY, grid = nn40.load_data()
+nn40.train(trainX, trainY)
+
+# Showing results
+# print("-- -- -- -- -- -- -- -- -- --")
+# print("For the first 40 data points")
+# nn40.save_train_results("40")
+# nn40.test(testX, testY)
+# print("-- -- -- -- -- -- -- -- -- --", end="\n\n")
+
+grid40 = nn40.justPrediction(grid)
+nn40.plotGrid(grid, grid40)
