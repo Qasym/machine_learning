@@ -94,11 +94,31 @@ class NeuralNetwork:
     def dSigmoid(self, x):
         return self.sigmoid(x) * (1 - self.sigmoid(x))
 
+    def getAccuracyLoss(self, X, Y):
+        # Feedforward - input to hidden
+        hiddenLayer = X @ self.weights_1 + self.bias_1 # 630x150
+        activatedHiddenLayer = self.sigmoid(hiddenLayer) # 630x150
+
+        # Feedforward - hidden to output
+        outputLayer = activatedHiddenLayer @ self.weights_2 + self.bias_2 # 630x1
+        activatedOutputLayer = self.sigmoid(outputLayer) # 630x1
+
+        # Calculate loss
+        loss = self.costFunction(activatedOutputLayer, Y)
+
+        # Calculate accuracy
+        accuracy = ((activatedOutputLayer >= 0.5).astype(int) == Y).astype(int).sum() / len(Y)
+        accuracy *= 100
+        return accuracy, loss
 
     def train(self, X, Y):
         # X is 630x2
         # Y is 630x1
         for epoch in range(self.epochs):
+            # Accuracy and lost tracking
+            accuracy, loss = self.getAccuracyLoss(X, Y)
+            self.train_accuracy.append(accuracy)
+            self.train_loss.append(loss)
             
             # Fully stochastic gradient descent
             for i in range(self.data_entries):
@@ -126,44 +146,18 @@ class NeuralNetwork:
                 self.weights_1 -= self.learningRate * dWeights_1
                 self.bias_1 -= self.learningRate * dBias_1
             
-            # Calculate loss
-
-            # Feedforward - input to hidden
-            hiddenLayer = X @ self.weights_1 + self.bias_1 # 630x150
-            activatedHiddenLayer = self.sigmoid(hiddenLayer) # 630x150
-
-            # Feedforward - hidden to output
-            outputLayer = activatedHiddenLayer @ self.weights_2 + self.bias_2 # 630x1
-            activatedOutputLayer = self.sigmoid(outputLayer) # 630x1
-
-            # Track loss
-            self.train_loss.append(self.costFunction(activatedOutputLayer, Y))
-
-            # Calculate accuracy
-            accuracy = ((activatedOutputLayer >= 0.5).astype(int) == Y).astype(int).sum() / len(Y)
-            accuracy *= 100
-            self.train_accuracy.append(accuracy)
+        # Accuracy and loss of the last epoch
+        accuracy, loss = self.getAccuracyLoss(X, Y)
+        self.train_accuracy.append(accuracy)
+        self.train_loss.append(loss)
 
     
     def test(self, X, Y):
-        # Feedforward - input to hidden
-        hiddenLayer = X @ self.weights_1 + self.bias_1 # 630x150
-        activatedHiddenLayer = self.sigmoid(hiddenLayer) # 630x150
-
-        # Feedforward - hidden to output
-        outputLayer = activatedHiddenLayer @ self.weights_2 + self.bias_2 # 630x1
-        activatedOutputLayer = self.sigmoid(outputLayer) # 630x1
-
-        # Calculate loss
-        loss = self.costFunction(activatedOutputLayer, Y)
-
-        # Calculate accuracy
-        activatedOutputLayer = (activatedOutputLayer >= 0.5).astype(int) # 630x1
-        accuracy = (activatedOutputLayer == Y).astype(int).sum() / len(Y)
+        accuracy, loss = self.getAccuracyLoss(X, Y)
         
         # Print message after finish
         print("Test loss:", "%.2f"%loss)
-        print("Test accuracy: ", "%.2f"%(accuracy * 100), "%", sep="")
+        print("Test accuracy: ", "%.2f"%accuracy, "%", sep="")
 
 
 nn = NeuralNetwork(hiddenLayerNodes=250, learningRate=0.01, epochs=2)
