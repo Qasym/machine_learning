@@ -13,10 +13,9 @@ weights2 is a matrix between the output layer and the hidden layer
 '''
 
 class NeuralNetwork:
-    def __init__(self, hiddenLayerNodes, learningRate, epochs=1, data_entries=None):
+    def __init__(self, hiddenLayerNodes, learningRate, epochs=1):
         # Assign parameters
         self.learningRate = learningRate
-        self.data_entries = data_entries
         self.epochs = epochs
 
         # Initialize the weights
@@ -27,7 +26,7 @@ class NeuralNetwork:
         self.bias_1 = np.random.rand(1, hiddenLayerNodes) # from input to hidden
         self.bias_2 = np.random.rand(1, 1) # from hidden to output
 
-        # Loss over epochs tracking
+        # Loss & accuracy over epochs tracking
         self.train_loss = []
         self.train_accuracy = []
 
@@ -41,10 +40,6 @@ class NeuralNetwork:
         trainX = train[:, :2]
         trainY = train[:, 2]
         trainY = trainY.reshape(len(trainY), 1)
-
-        # Set data_entries
-        if self.data_entries == None or self.data_entries > len(trainX):
-            self.data_entries = len(trainX)
 
         # Obtain test data
         testX = test[:, :2]
@@ -87,7 +82,7 @@ class NeuralNetwork:
 
             # printing the last accuracy and loss
             print("Training loss:", "%.2f"%self.train_loss[-1])
-            print("Training accuracy:", "%.2f"%self.train_accuracy[-1])
+            print("Training accuracy: ", "%.2f"%self.train_accuracy[-1], "%", sep="")
 
     def costFunction(self, prediction, actual):
         # prediction is a 1x1 matrix
@@ -125,13 +120,13 @@ class NeuralNetwork:
         # X is 630x2
         # Y is 630x1
         for epoch in range(self.epochs):
-            # Accuracy and lost tracking
+            # Accuracy and loss tracking
             accuracy, loss = self.getAccuracyLoss(X, Y)
             self.train_accuracy.append(accuracy)
             self.train_loss.append(loss)
             
             # Fully stochastic gradient descent
-            for i in range(self.data_entries):
+            for i in range(len(X)):
                 # Feedforward - input to hidden
                 hiddenLayer = X[i, :] @ self.weights_1 + self.bias_1 # 1x150
                 activatedHiddenLayer = self.sigmoid(hiddenLayer) # 1x150
@@ -182,33 +177,42 @@ class NeuralNetwork:
 
         return activatedOutputLayer
 
-    def plotGrid(self, gridX, gridY):
+    def plotGrid(self, gridX, gridY, name="grid"):
         x = np.asarray(gridX[:, 0])
         y = np.asarray(gridX[:, 1])
         z = np.where(gridY[:, 0] == 1, 'r', 'b')
 
         plt.title("Grid")
         plt.scatter(x, y, c=z)
-        plt.savefig("grid.png")
+        plt.savefig(name + ".png")
         plt.close()
 
+def main():
+    nn40 = NeuralNetwork(hiddenLayerNodes=250, learningRate=0.1, epochs=500)
+    trainX, trainY, testX, testY, grid = nn40.load_data()
+    nn40.train(trainX[:40, :], trainY[:40, :])
 
-# nn = NeuralNetwork(hiddenLayerNodes=250, learningRate=0.01, epochs=100)
-# trainX, trainY, testX, testY, grid = nn.load_data()
-# nn.train(trainX, trainY)
-# nn.test(testX, testY)
-# nn.save_train_results()
+    # Showing results
+    print("\n\n\n-- -- -- -- -- -- -- -- -- --")
+    print("For the first 40 data points")
+    nn40.save_train_results("40")
+    nn40.test(testX, testY)
+    print("-- -- -- -- -- -- -- -- -- --\n\n\n")
 
-nn40 = NeuralNetwork(hiddenLayerNodes=250, learningRate=0.01, epochs=100, data_entries=40)
-trainX, trainY, testX, testY, grid = nn40.load_data()
-nn40.train(trainX, trainY)
+    grid40 = nn40.justPrediction(grid)
+    nn40.plotGrid(grid, grid40, "grid40")
 
-# Showing results
-# print("-- -- -- -- -- -- -- -- -- --")
-# print("For the first 40 data points")
-# nn40.save_train_results("40")
-# nn40.test(testX, testY)
-# print("-- -- -- -- -- -- -- -- -- --", end="\n\n")
+    nnAll = NeuralNetwork(hiddenLayerNodes=250, learningRate=0.1, epochs=500)
+    nnAll.train(trainX, trainY)
 
-grid40 = nn40.justPrediction(grid)
-nn40.plotGrid(grid, grid40)
+    # Showing results
+    print("\n\n\n-- -- -- -- -- -- -- -- -- --")
+    print("For the whole train set")
+    nnAll.save_train_results("all")
+    nnAll.test(testX, testY)
+    print("-- -- -- -- -- -- -- -- -- --\n\n\n")
+
+    gridAll = nnAll.justPrediction(grid)
+    nnAll.plotGrid(grid, gridAll, "gridAll")
+
+main()
