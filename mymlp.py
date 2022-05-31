@@ -13,6 +13,9 @@ weights2 is a matrix between the output layer and the hidden layer
 '''
 
 class NeuralNetwork:
+
+
+
     def __init__(self, hiddenLayerNodes, learningRate, epochs=1):
         # Assign parameters
         self.learningRate = learningRate
@@ -26,9 +29,15 @@ class NeuralNetwork:
         self.bias_1 = np.random.rand(1, hiddenLayerNodes) # from input to hidden
         self.bias_2 = np.random.rand(1, 1) # from hidden to output
 
-        # Loss & accuracy over epochs tracking
+        # Loss & accuracy over epochs tracking for training set
         self.train_loss = []
         self.train_accuracy = []
+
+        # Loss & accuracy over epochs tracking for test set
+        self.test_loss = []
+        self.test_accuracy = []
+
+
 
     def load_data(self):
         # Load data
@@ -50,132 +59,176 @@ class NeuralNetwork:
 
         return trainX, trainY, testX, testY, grid
 
-    def save_train_results(self, name=None):
+
+
+    def save_results(self, filename):
         if self.epochs == 1:
             # graphs look awful with epoch, so I just print
             print("Training loss within the only epoch:", "%.2f"%self.train_loss[0])
             print("Training accuracy within the only epoch:", "%.2f"%self.train_accuracy[0])
         else:
             # plotting loss
-            plt.title("Train loss over epochs")
+            plt.title("Loss over epochs")
             plt.xlabel("Epochs")
             plt.ylabel("Loss")
-            # plt.xticks(np.arange(1, self.epochs + 2, 1))
-            plt.plot(self.train_loss)
-            if name == None:
-                plt.savefig("train_loss.png")
-            else:
-                plt.savefig("train_loss_" + name + ".png")
+            plt.plot(self.train_loss, label="Training loss")
+            plt.plot(self.test_loss, label="Test loss")
+            plt.savefig(filename + "_loss.png")
             plt.close()
 
             # plotting accuracy
-            plt.title("Train accuracy over epochs")
+            plt.title("Accuracy over epochs")
             plt.xlabel("Epochs")
             plt.ylabel("Accuracy")
-            # plt.xticks(np.arange(1, self.epochs + 2, 1))
-            plt.plot(self.train_accuracy)
-            if name == None:
-                plt.savefig("train_accuracy.png")
-            else:
-                plt.savefig("train_accuracy_" + name + ".png")
+            plt.plot(self.train_accuracy, label="Training accuracy")
+            plt.plot(self.test_accuracy, label="Test accuracy")
+            plt.savefig(filename + "_accuracy.png")
             plt.close()
 
-            # printing the last accuracy and loss
-            print("Training loss:", "%.2f"%self.train_loss[-1])
-            print("Training accuracy: ", "%.2f"%self.train_accuracy[-1], "%", sep="")
+
 
     def costFunction(self, prediction, actual):
         # prediction is a 1x1 matrix
         # actual is a 1x1 matrix
-        # print(prediction.shape, actual)
         result = actual * np.log(prediction) + (1 - actual) * np.log(1 - prediction)
         return -np.sum(result) / len(actual)
 
 
-    # sigmoid function
+
     def sigmoid(self, x):
         return 1 / (1 + np.exp(-x) + 1e-8) # adding a small number to remove overflow
     
+
+
     def dSigmoid(self, x):
         return self.sigmoid(x) * (1 - self.sigmoid(x))
 
-    def getAccuracyLoss(self, X, Y):
+
+
+    def feedforward(self, X):
         # Feedforward - input to hidden
-        hiddenLayer = X @ self.weights_1 + self.bias_1 # 630x150
-        activatedHiddenLayer = self.sigmoid(hiddenLayer) # 630x150
+        hiddenLayer = X @ self.weights_1 + self.bias_1 # 1x150
+        activatedHiddenLayer = self.sigmoid(hiddenLayer) # 1x150
 
         # Feedforward - hidden to output
-        outputLayer = activatedHiddenLayer @ self.weights_2 + self.bias_2 # 630x1
-        activatedOutputLayer = self.sigmoid(outputLayer) # 630x1
+        outputLayer = activatedHiddenLayer @ self.weights_2 + self.bias_2 # 1x1
+        activatedOutputLayer = self.sigmoid(outputLayer) # 1x1
+
+        return activatedOutputLayer, activatedHiddenLayer, hiddenLayer
+
+
+
+    def backpropation(self, input, prediction, actual, aHL, hL):
+        # For backpropation, we have to use gradient of cross entropy loss
+
+        # Backpropagation - output to hidden
+        dBias_2 = prediction - actual # 1x1
+        dWeights_2 = aHL.T @ (prediction - actual) # 150x1
+
+        # Backpropagation - hidden to input
+        dBias_1 = ((self.weights_2 @ dBias_2) * self.dSigmoid(hL).T).T # 150x1
+        dWeights_1 = ((self.weights_2 @ dBias_2) @ X[i, :].reshape((1, 2)) * self.dSigmoid(hL).T).T # 2x150
+
+        return dBias_1, dWeights_1, dBias_2, dWeights_2
+
+
+
+    def updateWeightsBiases(self, dB1, dW1, dB2, dW2):
+        # Update weights and bias
+        self.weights_2 -= self.learningRate * dW2
+        self.bias_2 -= self.learningRate * dB2
+        self.weights_1 -= self.learningRate * dW1
+        self.bias_1 -= self.learningRate * dB1
+            
+
+
+    def SGD(self, X, Y):
+        # Fully stochastic gradient descent
+        for i in range(len(X)):
+            # aHL - activatedHiddenLayer
+            # hL - hiddenLayer
+            prediction, aHL, hL = self.feedforward(X[i])
+            dB1, dW1, dB2, dW2 = self.backpropation(prediction, X[i], Y[i], aHL, hL)
+            self.updateWeightsBiases(dB1, dW1, dB2, dW2)
+
+
+
+    def getAccuracyLoss(self, X, Y):
+        # Get prediction
+        prediction, a, b = self.feedforward(X)
 
         # Calculate loss
-        loss = self.costFunction(activatedOutputLayer, Y)
+        loss = self.costFunction(prediction, Y)
 
         # Calculate accuracy
-        accuracy = ((activatedOutputLayer >= 0.5).astype(int) == Y).astype(int).sum() / len(Y)
+        accuracy = ((prediction >= 0.5).astype(int) == Y).astype(int).sum() / len(Y)
         accuracy *= 100
         return accuracy, loss
 
-    def train(self, X, Y):
-        # X is 630x2
-        # Y is 630x1
-        for epoch in range(self.epochs):
-            # Accuracy and loss tracking
-            accuracy, loss = self.getAccuracyLoss(X, Y)
-            self.train_accuracy.append(accuracy)
-            self.train_loss.append(loss)
-            
-            # Fully stochastic gradient descent
-            for i in range(len(X)):
-                # Feedforward - input to hidden
-                hiddenLayer = X[i, :] @ self.weights_1 + self.bias_1 # 1x150
-                activatedHiddenLayer = self.sigmoid(hiddenLayer) # 1x150
 
-                # Feedforward - hidden to output
-                outputLayer = activatedHiddenLayer @ self.weights_2 + self.bias_2 # 1x1
-                activatedOutputLayer = self.sigmoid(outputLayer) # 1x1
 
-                # For backpropation, we have to use gradient of cross entropy loss
-
-                # Backpropagation - output to hidden
-                dBias_2 = activatedOutputLayer - Y[i, :] # 1x1
-                dWeights_2 = activatedHiddenLayer.T @ (activatedOutputLayer - Y[i, :]) # 150x1
-
-                # Backpropagation - hidden to input
-                dBias_1 = ((self.weights_2 @ dBias_2) * self.dSigmoid(hiddenLayer).T).T # 150x1
-                dWeights_1 = ((self.weights_2 @ dBias_2) @ X[i, :].reshape((1, 2)) * self.dSigmoid(hiddenLayer).T).T # 2x150
-
-                # Update weights and bias
-                self.weights_2 -= self.learningRate * dWeights_2
-                self.bias_2 -= self.learningRate * dBias_2
-                self.weights_1 -= self.learningRate * dWeights_1
-                self.bias_1 -= self.learningRate * dBias_1
-            
-        # Accuracy and loss of the last epoch
+    def updateTrainAccuracyLoss(self, X, Y):
+        # Accuracy and loss tracking
         accuracy, loss = self.getAccuracyLoss(X, Y)
         self.train_accuracy.append(accuracy)
         self.train_loss.append(loss)
+
+
+
+    def train(self, X, Y):
+        for epoch in range(self.epochs):
+            self.updateTrainAccuracyLoss(X, Y) # initial accuracy and loss
+            self.SGD(X, Y)
+            
+        # Accuracy and loss of the last epoch
+        self.updateTrainAccuracyLoss(X, Y)
+        print("\n\n\n\nTraining finished")
+        print("Training loss:", "%.2f"%self.train_loss[-1])
+        print("Training accuracy:", "%.2f"%self.train_accuracy[-1])
+        print("\n\n\n\n")
 
     
     def test(self, X, Y):
         accuracy, loss = self.getAccuracyLoss(X, Y)
         
         # Print message after finish
+        print("\n\n\n\nTesting finished")
         print("Test loss:", "%.2f"%loss)
         print("Test accuracy: ", "%.2f"%accuracy, "%", sep="")
+        print("\n\n\n\n")
+
+
+
+    def updateTestAccuracyLoss(self, X, Y):
+        # Accuracy and loss tracking
+        accuracy, loss = self.getAccuracyLoss(X, Y)
+        self.test_accuracy.append(accuracy)
+        self.test_loss.append(loss)
+
+
+
+    def testAsTrain(self, trainX, trainY, testX, testY):
+        # Train the model
+        for epoch in range(self.epochs):
+            self.updateTrainAccuracyLoss(trainX, trainY) # initial accuracy and loss
+            self.updateTestAccuracyLoss(testX, testY)
+            self.SGD(trainX, trainY)
+
+        # Accuracy and loss of the last epoch
+        self.updateTrainAccuracyLoss(trainX, trainY)
+        self.updateTestAccuracyLoss(testX, testY)
+        
+
+
 
     def justPrediction(self, X):
-        # Feedforward - input to hidden
-        hiddenLayer = X @ self.weights_1 + self.bias_1 # 630x150
-        activatedHiddenLayer = self.sigmoid(hiddenLayer) # 630x150
+        prediction, a, b = self.feedforward(X)
 
-        # Feedforward - hidden to output
-        outputLayer = activatedHiddenLayer @ self.weights_2 + self.bias_2 # 630x1
-        activatedOutputLayer = self.sigmoid(outputLayer) # 630x1
+        prediction = (prediction >= 0.5).astype(int)
 
-        activatedOutputLayer = (activatedOutputLayer >= 0.5).astype(int)
+        return prediction
 
-        return activatedOutputLayer
+
 
     def plotGrid(self, gridX, gridY, name="grid"):
         x = np.asarray(gridX[:, 0])
@@ -186,6 +239,8 @@ class NeuralNetwork:
         plt.scatter(x, y, c=z)
         plt.savefig(name + ".png")
         plt.close()
+
+
 
 def main():
     nn40 = NeuralNetwork(hiddenLayerNodes=250, learningRate=0.1, epochs=500)
