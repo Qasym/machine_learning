@@ -178,25 +178,19 @@ class NeuralNetwork:
         outputLayer = activatedHiddenLayer @ self.weights_2 + self.bias_2 # 630x1
         activatedOutputLayer = self.sigmoid(outputLayer) # 630x1
 
-        activatedOutputLayer = ((activatedOutputLayer >= 0.5).astype(int) == 1).astype(int)
+        activatedOutputLayer = (activatedOutputLayer >= 0.5).astype(int)
 
         return activatedOutputLayer
 
     def plotGrid(self, gridX, gridY):
         x = np.asarray(gridX[:, 0])
         y = np.asarray(gridX[:, 1])
-        z = np.asarray(gridY)
-    
-        fig = plt.figure()
-        ax = fig.add_subplot(111, projection='3d')
+        z = np.where(gridY[:, 0] == 1, 'r', 'b')
 
-        ax.scatter(x, y, z, c='r', marker='o')
-
-        ax.set_xlabel('X Label')
-        ax.set_ylabel('Y Label')
-        ax.set_zlabel('Z Label')
-
+        plt.title("Grid")
+        plt.scatter(x, y, c=z)
         plt.savefig("grid.png")
+        plt.close()
 
 
 # nn = NeuralNetwork(hiddenLayerNodes=250, learningRate=0.01, epochs=100)
