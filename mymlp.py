@@ -73,6 +73,7 @@ class NeuralNetwork:
             plt.ylabel("Loss")
             plt.plot(self.train_loss, label="Training loss")
             plt.plot(self.test_loss, label="Test loss")
+            plt.legend()
             plt.savefig(filename + "_loss.png")
             plt.close()
 
@@ -82,6 +83,7 @@ class NeuralNetwork:
             plt.ylabel("Accuracy")
             plt.plot(self.train_accuracy, label="Training accuracy")
             plt.plot(self.test_accuracy, label="Test accuracy")
+            plt.legend()
             plt.savefig(filename + "_accuracy.png")
             plt.close()
 
@@ -107,8 +109,8 @@ class NeuralNetwork:
 
     def feedforward(self, X):
         # Feedforward - input to hidden
-        hiddenLayer = X @ self.weights_1 + self.bias_1 # 1x150
-        activatedHiddenLayer = self.sigmoid(hiddenLayer) # 1x150
+        hiddenLayer = X @ self.weights_1 + self.bias_1 # 1x250
+        activatedHiddenLayer = self.sigmoid(hiddenLayer) # 1x250
 
         # Feedforward - hidden to output
         outputLayer = activatedHiddenLayer @ self.weights_2 + self.bias_2 # 1x1
@@ -118,16 +120,16 @@ class NeuralNetwork:
 
 
 
-    def backpropation(self, input, prediction, actual, aHL, hL):
+    def backpropation(self, x, prediction, y, aHL, hL):
         # For backpropation, we have to use gradient of cross entropy loss
 
         # Backpropagation - output to hidden
-        dBias_2 = prediction - actual # 1x1
-        dWeights_2 = aHL.T @ (prediction - actual) # 150x1
+        dBias_2 = prediction - y # 1x1
+        dWeights_2 = aHL.T @ (prediction - y) # 250x1
 
         # Backpropagation - hidden to input
-        dBias_1 = ((self.weights_2 @ dBias_2) * self.dSigmoid(hL).T).T # 150x1
-        dWeights_1 = ((self.weights_2 @ dBias_2) @ X[i, :].reshape((1, 2)) * self.dSigmoid(hL).T).T # 2x150
+        dBias_1 = ((self.weights_2 @ dBias_2) * self.dSigmoid(hL).T).T # 250x1
+        dWeights_1 = ((self.weights_2 @ dBias_2) @ x * self.dSigmoid(hL).T).T # 2x250
 
         return dBias_1, dWeights_1, dBias_2, dWeights_2
 
@@ -147,8 +149,10 @@ class NeuralNetwork:
         for i in range(len(X)):
             # aHL - activatedHiddenLayer
             # hL - hiddenLayer
-            prediction, aHL, hL = self.feedforward(X[i])
-            dB1, dW1, dB2, dW2 = self.backpropation(prediction, X[i], Y[i], aHL, hL)
+            x = X[i, :].reshape((1, 2)) # our input
+
+            prediction, aHL, hL = self.feedforward(x)
+            dB1, dW1, dB2, dW2 = self.backpropation(x, prediction, Y[i], aHL, hL)
             self.updateWeightsBiases(dB1, dW1, dB2, dW2)
 
 
@@ -217,6 +221,11 @@ class NeuralNetwork:
         # Accuracy and loss of the last epoch
         self.updateTrainAccuracyLoss(trainX, trainY)
         self.updateTestAccuracyLoss(testX, testY)
+
+        print("Train loss:", "%.2f"%self.train_loss[-1])
+        print("Train accuracy:", "%.2f"%self.train_accuracy[-1], "%", sep="")
+        print("Test loss:", "%.2f"%self.test_loss[-1])
+        print("Test accuracy: ", "%.2f"%self.test_accuracy[-1], "%", sep="")
         
 
 
@@ -240,34 +249,18 @@ class NeuralNetwork:
         plt.savefig(name + ".png")
         plt.close()
 
-
-
 def main():
-    nn40 = NeuralNetwork(hiddenLayerNodes=250, learningRate=0.1, epochs=500)
-    trainX, trainY, testX, testY, grid = nn40.load_data()
-    nn40.train(trainX[:40, :], trainY[:40, :])
-
-    # Showing results
-    print("\n\n\n-- -- -- -- -- -- -- -- -- --")
-    print("For the first 40 data points")
-    nn40.save_train_results("40")
-    nn40.test(testX, testY)
-    print("-- -- -- -- -- -- -- -- -- --\n\n\n")
-
-    grid40 = nn40.justPrediction(grid)
-    nn40.plotGrid(grid, grid40, "grid40")
-
     nnAll = NeuralNetwork(hiddenLayerNodes=250, learningRate=0.1, epochs=500)
-    nnAll.train(trainX, trainY)
+    trainX, trainY, testX, testY, grid = nnAll.load_data()
+    print("\n\n\n\nTraining on", len(trainX), "samples")
+    nnAll.testAsTrain(trainX, trainY, testX, testY)
+    nnAll.save_results("NN_all")
+    nnAll.plotGrid(grid, nnAll.justPrediction(grid), "NN_all_grid")
 
-    # Showing results
-    print("\n\n\n-- -- -- -- -- -- -- -- -- --")
-    print("For the whole train set")
-    nnAll.save_train_results("all")
-    nnAll.test(testX, testY)
-    print("-- -- -- -- -- -- -- -- -- --\n\n\n")
-
-    gridAll = nnAll.justPrediction(grid)
-    nnAll.plotGrid(grid, gridAll, "gridAll")
+    nn40 = NeuralNetwork(hiddenLayerNodes=250, learningRate=0.1, epochs=500)
+    print("\n\n\n\nTraining on", 40, "samples")
+    nn40.testAsTrain(trainX[:40, :], trainY[:40, :], testX, testY)
+    nn40.save_results("NN_40")
+    nn40.plotGrid(grid, nn40.justPrediction(grid), "NN_40_grid")
 
 main()
