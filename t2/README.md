@@ -2,6 +2,9 @@
 
 - I used conda environment for this assignment, you can find the information about the environment I used in [environment.yml](./environment.yml) file
 - I used **numpy** and **matplotlib** packages
+- I recommend to view the [20182002_KasymzhanAbdyldayev.md](./20182002_KasymzhanAbdyldayev.md)<br>
+instead of the [20182002_KasymzhanAbdyldayev.pdf](./20182002_KasymzhanAbdyldayev.pdf)<br>
+since that way you can simply click on the links and immediately open the associated file
 
 ## Execution Commands
 
