@@ -9,12 +9,17 @@ x_test = x_test.reshape(x_test.shape[0], 28 * 28)
 
 start_time = time.time()
 
-forest = RandomForestClassifier(n_estimators=100, random_state=0, n_jobs=-1)
+forest = RandomForestClassifier(n_estimators=1000, random_state=0, n_jobs=-1,
+                                max_depth=10)
 forest.fit(x_train, y_train.ravel())
 
 end_time = time.time()
 
 prediction = forest.predict(x_test)
 
-print("Random Trees - Fashion MNIST accuracy:", accuracy_score(y_test, prediction) * 100)
+print("Random Forests - Fashion MNIST accuracy:", accuracy_score(y_test, prediction) * 100)
 print("Program trained for", end_time - start_time, "seconds")
+
+print("#########")
+print("forest.score(x_train, y_train) =", forest.score(x_train, y_train.ravel()))
+print("forest.score(x_test, y_test) =", forest.score(x_test, y_test))
