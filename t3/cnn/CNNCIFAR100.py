@@ -11,7 +11,7 @@ model = tf.keras.Sequential(
     [
         tf.keras.layers.Conv2D(32, (3,3), padding='same', activation="relu",input_shape=(32, 32, 3)),
         tf.keras.layers.MaxPooling2D((2, 2), strides=2),
-        tf.keras.layers.Dropout(rate=0.2),
+        tf.keras.layers.BatchNormalization(),
 
         tf.keras.layers.Conv2D(64, (3,3), padding='same', activation="relu"),
         tf.keras.layers.MaxPooling2D((2, 2), strides=2),
@@ -19,12 +19,14 @@ model = tf.keras.Sequential(
 
         tf.keras.layers.Flatten(),
         tf.keras.layers.Dense(200, activation="relu"),
-        tf.keras.layers.BatchNormalization(),
+        tf.keras.layers.Dropout(rate=0.2),
         tf.keras.layers.Dense(100, activation="softmax")
     ]
 )
 
-callbacks = []
+callbacks = [
+    tf.keras.callbacks.EarlyStopping(patience=2, min_delta=0.001)
+]
 
 start_time = time.time()
 
@@ -38,8 +40,10 @@ history = model.fit(x_train,y_train,
 
 end_time = time.time()
 
-model.save("cnn_cifar100.h5")
+
 metrics = pd.DataFrame(history.history)
-metrics[['loss', 'accuracy']].plot().get_figure().savefig('cnn_cifar100_metrics.png')
+metrics[['val_accuracy', 'accuracy']].plot().get_figure().savefig('opt_cifar100_metrics.png')
 
 print("Program trained for", end_time - start_time, "seconds")
+
+# Reference to build cnn: https://cnvrg.io/cnn-tensorflow/
